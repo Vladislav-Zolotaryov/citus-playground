@@ -1,0 +1,83 @@
+services:
+  master:
+    image: "citusdata/citus"
+    ports: ["${COORDINATOR_EXTERNAL_PORT:-5432}:5432"]
+    labels: ["com.citusdata.role=Master"]
+    environment: &AUTH
+      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      PGUSER: "${POSTGRES_USER:-postgres}"
+      PGPASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      POSTGRES_HOST_AUTH_METHOD: "${POSTGRES_HOST_AUTH_METHOD:-trust}"
+    volumes:
+      - master-vol:/var/lib/postgresql/data
+    command: >
+      postgres 
+      -c wal_level=logical
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+  a-worker:
+    image: "citusdata/citus"
+    labels: ["com.citusdata.role=Worker"]
+    depends_on: [manager]
+    environment: *AUTH
+    volumes:
+      - healthcheck-volume:/healthcheck
+      - a-worker-vol:/var/lib/postgresql/data
+    command: >
+      postgres 
+      -c wal_level=logical
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+  b-worker:
+    image: "citusdata/citus"
+    labels: ["com.citusdata.role=Worker"]
+    depends_on: [manager]
+    environment: *AUTH
+    volumes:
+      - healthcheck-volume:/healthcheck
+      - b-worker-vol:/var/lib/postgresql/data
+    command: >
+      postgres 
+      -c wal_level=logical
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+  c-worker:
+    image: "citusdata/citus"
+    labels: [ "com.citusdata.role=Worker" ]
+    depends_on: [ manager ]
+    environment: *AUTH
+    volumes:
+      - healthcheck-volume:/healthcheck
+      - c-worker-vol:/var/lib/postgresql/data
+    command: >
+      postgres 
+      -c wal_level=logical
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+  d-worker:
+    image: "citusdata/citus"
+    labels: [ "com.citusdata.role=Worker" ]
+    depends_on: [ manager ]
+    environment: *AUTH
+    volumes:
+      - healthcheck-volume:/healthcheck
+      - d-worker-vol:/var/lib/postgresql/data
+    command: >
+      postgres 
+      -c wal_level=logical
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+  manager:
+    image: "citusdata/membership-manager"
+    volumes:
+      - "${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock"
+      - healthcheck-volume:/healthcheck
+    environment: *AUTH
+volumes:
+  healthcheck-volume:
+  master-vol:
+  a-worker-vol:
+  b-worker-vol:
+  c-worker-vol:
+  d-worker-vol:
